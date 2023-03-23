@@ -1,7 +1,7 @@
 /**********************************************************************
  * This program deadlocks beautifully using MPI/C
  *
- * Andreas Kähäri
+ * Andreas Kï¿½hï¿½ri
  * 1999-12-29
  **********************************************************************/
 
@@ -34,8 +34,8 @@ int main(int argc, char *argv[]) {
   /* Here comes the important bit */
 
   if (rank == 0) {
-    MPI_Ssend(&a, 1, MPI_DOUBLE, 1, 111, MPI_COMM_WORLD);
     MPI_Recv(&b, 1, MPI_DOUBLE, 1, 222, MPI_COMM_WORLD, &status);
+    MPI_Ssend(&a, 1, MPI_DOUBLE, 1, 111, MPI_COMM_WORLD);
     printf("Processor 0 got %f from processor 1\n", b);
   } else {
     MPI_Ssend(&a, 1, MPI_DOUBLE, 0, 222, MPI_COMM_WORLD);
