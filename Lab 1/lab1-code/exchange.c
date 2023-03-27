@@ -18,17 +18,21 @@ int main(int argc, char *argv[]) {
   
   a = 100.0 + (double) rank;  /* Different a on different processors */
 
-  /* Exchange variable a, notice the send-recv order */
-  if (rank == 0) {
-    MPI_Send(&a, 1, MPI_DOUBLE, 1, 111, MPI_COMM_WORLD);
-    MPI_Recv(&b, 1, MPI_DOUBLE, 1, 222, MPI_COMM_WORLD, &status);
-    printf("Processor 0 got %f from processor 1\n", b);
-  } else if (rank==1) {
-    MPI_Recv(&b, 1, MPI_DOUBLE, 0, 111, MPI_COMM_WORLD, &status);
-    MPI_Send(&a, 1, MPI_DOUBLE, 0, 222, MPI_COMM_WORLD);
-    printf("Processor 1 got %f from processor 0\n", b);
-  }
+  int right = (rank + 1) % size; 
+  int left = (rank == 0) ? size - 1 : rank - 1;
 
+  printf("Processor %d has neighbors %d and %d \n", rank, left, right);
+
+  /* Exchange variable a, notice the send-recv order */
+  if (rank % 2 == 0) {
+    MPI_Send(&a, 1, MPI_DOUBLE, right, 111, MPI_COMM_WORLD);
+    MPI_Recv(&b, 1, MPI_DOUBLE, left, 222, MPI_COMM_WORLD, &status);
+    printf("Processor %d got %f from processor %d \n", rank, b, left);
+  } else {
+    MPI_Recv(&b, 1, MPI_DOUBLE, left, 111, MPI_COMM_WORLD, &status);
+    MPI_Send(&a, 1, MPI_DOUBLE, right, 222, MPI_COMM_WORLD);
+    printf("Processor %d got %f from processor %d \n", rank, b, left);
+  } 
   MPI_Finalize(); 
 
   return 0;
