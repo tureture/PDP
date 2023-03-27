@@ -10,7 +10,8 @@
 int main(int argc, char *argv[]) {
   int rank, size;
   double a, b;
-  MPI_Status status;
+  MPI_Status status[2];
+  MPI_Request request[2];
 
   MPI_Init(&argc, &argv);               /* Initialize MPI               */
   MPI_Comm_size(MPI_COMM_WORLD, &size); /* Get the number of processors */
@@ -24,16 +25,15 @@ int main(int argc, char *argv[]) {
   printf("Processor %d has neighbors %d and %d \n", rank, left, right);
 
   /* Exchange variable a, notice the send-recv order */
-  if (rank % 2 == 0) {
-    MPI_Send(&a, 1, MPI_DOUBLE, right, 111, MPI_COMM_WORLD);
-    MPI_Recv(&b, 1, MPI_DOUBLE, left, 222, MPI_COMM_WORLD, &status);
-    printf("Processor %d got %f from processor %d \n", rank, b, left);
-  } else {
-    MPI_Recv(&b, 1, MPI_DOUBLE, left, 111, MPI_COMM_WORLD, &status);
-    MPI_Send(&a, 1, MPI_DOUBLE, right, 222, MPI_COMM_WORLD);
-    printf("Processor %d got %f from processor %d \n", rank, b, left);
-  } 
+  MPI_Isend(&a, 1, MPI_DOUBLE, right, 1, MPI_COMM_WORLD, &request[0]);
+  MPI_Irecv(&b, 1, MPI_DOUBLE, left, 1, MPI_COMM_WORLD, &request[1]);
+
+  MPI_Waitall(2, request, status);
+
+  printf("Processor %d got %f from processor %d \n", rank, b, left);
+
   MPI_Finalize(); 
+
 
   return 0;
 }
