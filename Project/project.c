@@ -4,6 +4,7 @@
 #include <math.h>
 #include <time.h>
 #include <string.h>
+#include <limits.h>
 #include "prop.h"
 #include "project.h"
 
@@ -22,7 +23,6 @@ mpirun -np 2 ./project 10 out.txt
 // Main function
 int main(int argc, char *argv[])
 {   
-    printf("Start \n");
     // Initialize MPI
     int rank, size;
     MPI_Init(&argc, &argv);
@@ -33,29 +33,27 @@ int main(int argc, char *argv[])
     if (rank == 0) 
     {
         if (argc != 3)
-            {
-                printf("Usage: %s <total number of iterations> <output file>\n", argv[0]);
-                return -1;
-            }
-
+        {
+            printf("Usage: %s <total number of iterations> <output file>\n", argv[0]);
+            return -1;
+        }
     }
-    
-    printf("After reading input parameters");
-
-
 
     // Initialize parameters & allocate memory
     int N = atoi(argv[1]);
     int n = N/size;
-    char *output_file = argv[2];
-    int* local_result = (int*)malloc(n * sizeof(int));
-    int* x0;
-    int* x = (int*)malloc(7 * sizeof(int));
+    // char *output_file = argv[2];
+    int* local_result, *global_result;
+    int x0[] = {900, 900, 30, 330, 50, 270, 20};
+    int* x;
+
+    // Allocate memory
+    local_result = (int*)malloc(n * sizeof(int));
+    x = (int*)malloc(7 * sizeof(int));
+
 
     // Set initial state
-    x0 = (int[]){900, 900, 30, 330, 50, 270, 20};
-
-    printf("After allocating memory and stuff");
+    // x0 = (int[]){900, 900, 30, 330, 50, 270, 20};
 
     // initialize random seed
     srand(time(NULL) + rank);
@@ -65,18 +63,15 @@ int main(int argc, char *argv[])
 
     // Run simulation n times per process
     for (int i = 0; i < n; i++)
-    {
+    {   
         // Run Gillespie simulation
-        local_result[i] = gillespie_simulation(x0, x);
-        printf("Rank %d: %d\n", rank, local_result[i]);
-      
+        local_result[i] = gillespie_simulation(x0, x); 
     }
-
-
 
 
     // Stop timer
     double time = MPI_Wtime() - start;
+
 
     // Print max time 
     double max_time;
@@ -106,22 +101,22 @@ int gillespie_simulation(int *x0, int *x)
     memcpy(x, x0, 7 * sizeof(int));
 
     // Allocate memory for propensity vector
-    double w[7];
-    double cum_w[7];
+    double w[15];
+    double cum_w[15];
 
     while (t < 100)
-    {
+    {   
         // Calculate propensities
         prop(x, w);
 
         // Calculate a0
         a0 = 0;
-        for (int i = 0; i < 7; i++)
+        for (int i = 0; i < 15; i++)
         {
             a0 += w[i];
             cum_w[i] = a0;
         }
-
+        
         // Generate 2 random numbers
         u1 = (double)rand() / (double)RAND_MAX;
         u2 = (double)rand() / (double)RAND_MAX;
