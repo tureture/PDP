@@ -1,3 +1,4 @@
+#include "prop.h"
 /**
  * Compute propensities for the Malaria model.
  * @param x State vector Should be of length 7!
