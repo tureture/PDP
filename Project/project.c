@@ -5,6 +5,7 @@
 #include <time.h>
 #include <string.h>
 #include "prop.h"
+#include "project.h"
 
 /*
 Project in Parallel & Distributed Computing
@@ -15,8 +16,6 @@ Monte Carlo computations & Stochastic Simulation algorithm to simulate malaria e
 By Ture Hassler
 */
 
-// Function headers
-int gillespie_simulation(int *x0);
 
 // Main function
 int main(int argc, char *argv[])
