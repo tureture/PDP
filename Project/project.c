@@ -19,6 +19,12 @@ By Ture Hassler
 mpirun -np 2 ./project 10 out.txt
 */
 
+// Global variables
+const int length_of_x = 7;
+const int lengt_of_w = 15;
+const int time_limit = 100;
+const int nr_bins = 20;
+
 
 // Main function
 int main(int argc, char *argv[])
@@ -42,7 +48,7 @@ int main(int argc, char *argv[])
     // Initialize parameters & allocate memory
     int N = atoi(argv[1]);
     int n = N/size;
-    // char *output_file = argv[2];
+    char *output_file = argv[2];
     int* local_result, *global_result;
     int x0[] = {900, 900, 30, 330, 50, 270, 20};
     int* x;
@@ -68,6 +74,27 @@ int main(int argc, char *argv[])
         local_result[i] = gillespie_simulation(x0, x); 
     }
 
+    // find max and min elements locally
+    int global_max, global_min;
+    int max = local_result[0];
+    int min = local_result[0];
+    for (int i = 1; i < n; i++)
+    {
+        if (local_result[i] > max)
+            max = local_result[i];
+        if (local_result[i] < min)
+            min = local_result[i];
+    }
+
+    // find max and min elements globally
+    MPI_Reduce(&max, &global_max, 1, MPI_INT, MPI_MAX, 0, MPI_COMM_WORLD);
+    MPI_Reduce(&min, &global_min, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
+
+    if (rank == 0)
+    {
+        printf("Max: %d, Min: %d\n", max, min);
+    }
+
 
     // Stop timer
     double time = MPI_Wtime() - start;
@@ -83,7 +110,8 @@ int main(int argc, char *argv[])
 
 
     // Free memory
-
+    free(local_result);
+    free(x);
 
     // Finalize the MPI environment.
     MPI_Finalize();
@@ -104,14 +132,14 @@ int gillespie_simulation(int *x0, int *x)
     double w[15];
     double cum_w[15];
 
-    while (t < 100)
+    while (t < time_limit)
     {   
         // Calculate propensities
         prop(x, w);
 
         // Calculate a0
         a0 = 0;
-        for (int i = 0; i < 15; i++)
+        for (int i = 0; i < lengt_of_w; i++)
         {
             a0 += w[i];
             cum_w[i] = a0;
