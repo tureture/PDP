@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
     int N = atoi(argv[1]);
     int n = N/size;
     char *output_file = argv[2];
-    int* local_result, *global_result;
+    int* local_result;
     int x0[] = {900, 900, 30, 330, 50, 270, 20};
     int* x;
 
@@ -90,20 +90,16 @@ int main(int argc, char *argv[])
     MPI_Allreduce(&max, &global_max, 1, MPI_INT, MPI_MAX, MPI_COMM_WORLD);
     MPI_Allreduce(&min, &global_min, 1, MPI_INT, MPI_MIN, MPI_COMM_WORLD);
 
-    if (rank == 0)
-    {
-        printf("Max: %d, Min: %d\n", max, min);
-    }
-
     // Create histogram bins
     int diff = global_max - global_min;
     int bin_size = diff / nr_bins;
     int remainder = diff % nr_bins;
     int sum = global_min;
     int* bins = (int*)malloc(nr_bins * sizeof(int));
+
     for (int i = 0; i < nr_bins; i++)
     {
-        sum += bin_size + (i < remainder ? 1 : 0); // attempt to make bins as equal as possible
+        sum += bin_size + (i < remainder ? 1:0); // attempt to make bins as equal as possible
         bins[i] = sum;
     }
 
@@ -113,7 +109,7 @@ int main(int argc, char *argv[])
     {
         for (int j = 0; j < nr_bins; j++)
         {
-            if (local_result[i] < bins[j])
+            if (local_result[i] <= bins[j])
             {
                 bin_counts[j]++;
                 break;
@@ -131,13 +127,7 @@ int main(int argc, char *argv[])
     // Print results
     if (rank == 0)
     {
-        // Print histogram
-        printf("Histogram:\n");
-        for (int i = 0; i < nr_bins; i++)
-        {
-            printf("%d-%d: %d\n", bins[i] - bin_size, bins[i], global_bin_counts[i]);
-        }
-
+        print_histogram(bins, global_bin_counts, nr_bins, global_min, global_max);
     }
 
     // Print max time 
@@ -148,6 +138,11 @@ int main(int argc, char *argv[])
         printf("Max time: %fs \n", max_time);
     }
 
+        // Write to file
+    if (rank == 0)
+    {
+        write_file(output_file, bins, global_bin_counts, nr_bins, global_min, global_max, N, max_time);
+    }
 
     // Free memory
     free(local_result);
@@ -271,3 +266,27 @@ void update_state(int* x, int reaction_index)
     }
 }
 
+void print_histogram(int* bins, int* bin_counts, int nr_bins, int min, int max)
+{
+    printf("Histogram:\n");
+    printf("%d-%d: %d\n", min, bins[0], bin_counts[0]);
+    for (int i = 1; i < nr_bins; i++)
+    {
+        printf("%d-%d: %d\n", bins[i - 1], bins[i], bin_counts[i]);
+    }
+}
+
+// Writes to file.
+// Uses order N, time, nr_bins, min, max and then the bins and bin_counts
+void write_file(char* filename, int* bins, int* bin_counts, int nr_bins, int min, int max, int N, double time)
+{
+    FILE *fp;
+    fp = fopen(filename, "w+");
+    fprintf(fp, "%d %f %d %d %d \n", N, time, nr_bins, min, max);
+    fprintf(fp, "%d %d %d\n", min, bins[0], bin_counts[0]);
+    for (int i = 1; i < nr_bins; i++)
+    {
+        fprintf(fp, "%d %d %d\n", bins[i - 1], bins[i], bin_counts[i]);
+    }
+    fclose(fp);
+}
