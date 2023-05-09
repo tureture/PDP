@@ -95,10 +95,50 @@ int main(int argc, char *argv[])
         printf("Max: %d, Min: %d\n", max, min);
     }
 
+    // Create histogram bins
+    int diff = global_max - global_min;
+    int bin_size = diff / nr_bins;
+    int remainder = diff % nr_bins;
+    int sum = global_min;
+    int* bins = (int*)malloc(nr_bins * sizeof(int));
+    for (int i = 0; i < nr_bins; i++)
+    {
+        sum += bin_size + (i < remainder ? 1 : 0); // attempt to make bins as equal as possible
+        bins[i] = sum;
+    }
+
+    // Count number of elements in each bin
+    int* bin_counts = (int*)malloc(nr_bins * sizeof(int));
+    for (int i = 0; i < n; i++)
+    {
+        for (int j = 0; j < nr_bins; j++)
+        {
+            if (local_result[i] < bins[j])
+            {
+                bin_counts[j]++;
+                break;
+            }
+        }
+    }
+
+    // Sum up results of all bins
+    int* global_bin_counts = (int*)malloc(nr_bins * sizeof(int));
+    MPI_Reduce(bin_counts, global_bin_counts, nr_bins, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 
     // Stop timer
     double time = MPI_Wtime() - start;
 
+    // Print results
+    if (rank == 0)
+    {
+        // Print histogram
+        printf("Histogram:\n");
+        for (int i = 0; i < nr_bins; i++)
+        {
+            printf("%d-%d: %d\n", bins[i] - bin_size, bins[i], global_bin_counts[i]);
+        }
+
+    }
 
     // Print max time 
     double max_time;
