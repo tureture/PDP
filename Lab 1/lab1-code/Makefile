@@ -7,7 +7,7 @@ CC = mpicc
 CCFLAGS = -g -std=c99 -O3
 LIBS = -lm
 
-BINS = hello deadlock exchange onetoall pingpong pi buffon-laplace
+BINS = hello deadlock exchange onetoall pingpong pi buffon-laplace exchange_jacob
 
 all: $(BINS)
 
