@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
         printf("Max time: %fs \n", max_time);
     }
 
-        // Write to file
+    // Write to file
     if (rank == 0)
     {
         write_file(output_file, bins, global_bin_counts, nr_bins, global_min, global_max, N, max_time);
@@ -282,7 +282,7 @@ void write_file(char* filename, int* bins, int* bin_counts, int nr_bins, int min
 {
     FILE *fp;
     fp = fopen(filename, "w+");
-    fprintf(fp, "%d %f %d %d %d \n", N, time, nr_bins, min, max);
+    fprintf(fp, "N:%d, Time:%f, Nr_Bins:%d, Min:%d, Max:%d \n", N, time, nr_bins, min, max);
     fprintf(fp, "%d %d %d\n", min, bins[0], bin_counts[0]);
     for (int i = 1; i < nr_bins; i++)
     {
