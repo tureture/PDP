@@ -42,5 +42,3 @@ with p.open('r') as f:
     plt.show()
 
 
-    # N: 10000, Time: 1.464028, Nr Bins: 20, Min: 460, Max: 896 
-
