@@ -57,9 +57,14 @@ int main(int argc, char *argv[])
     local_result = (int*)malloc(n * sizeof(int));
     x = (int*)malloc(7 * sizeof(int));
 
+    // Allocate shared memory for one-way communications
+    double local_times[4];
+    double shared_times[4];
+    MPI_Win win;
 
-    // Set initial state
-    // x0 = (int[]){900, 900, 30, 330, 50, 270, 20};
+    // MPI_Win_allocate((MPI_Aint)(4 * sizeof(double)), sizeof(double), MPI_INFO_NULL, MPI_COMM_WORLD, &buffer, &win);
+    MPI_Win_create(shared_times, 4 * sizeof(double), sizeof(double), MPI_INFO_NULL, MPI_COMM_WORLD, &win);
+
 
     // initialize random seed
     srand(time(NULL) + rank);
@@ -71,7 +76,7 @@ int main(int argc, char *argv[])
     for (int i = 0; i < n; i++)
     {   
         // Run Gillespie simulation
-        local_result[i] = gillespie_simulation(x0, x); 
+        local_result[i] = gillespie_simulation(x0, x, local_times); 
     }
 
     // find max and min elements locally
@@ -138,15 +143,66 @@ int main(int argc, char *argv[])
         printf("Max time: %fs \n", max_time);
     }
 
+    // Send timesplits to rank 0 using shared memory + accumulate
+    
+    //print local times
+    printf("Local times: \n");
+    for (int i = 0; i < 4; i++)
+    {
+        printf("P %d, Split %d: %fs \n", rank, i+1, local_times[i]);
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    MPI_Win_fence(MPI_MODE_NOPRECEDE, win);
+    if (rank != 0)
+        MPI_Accumulate(&local_times, 4, MPI_DOUBLE, 0, 0 , 1, MPI_DOUBLE , MPI_SUM , win);
+
+    MPI_Win_fence(MPI_MODE_NOPRECEDE, win);
+
+    MPI_Barrier(MPI_COMM_WORLD);
+
+    // Calculate average time per split
+    double avg_time[4];
+    if (rank == 0)
+    {
+            for (int i = 0; i < 4; i++)
+            {
+                avg_time[i] = shared_times[i] / size;
+            }
+    }
+
+    // print avg times
+    if (rank == 0)
+    {
+        printf("Avg time for each split: \n");
+        printf("Split 1: %fs \n", avg_time[0]);
+        printf("Split 2: %fs \n", avg_time[1]);
+        printf("Split 3: %fs \n", avg_time[2]);
+        printf("Split 4: %fs \n", avg_time[3]);
+    }
+
+    MPI_Barrier(MPI_COMM_WORLD);
+
     // Write to file
     if (rank == 0)
     {
         write_file(output_file, bins, global_bin_counts, nr_bins, global_min, global_max, N, max_time);
     }
 
+    MPI_Barrier(MPI_COMM_WORLD);
+
     // Free memory
     free(local_result);
     free(x);
+    free(bins);
+    free(bin_counts);
+    free(global_bin_counts);
+
+
+    // Free MPI window 
+    MPI_Win_free(&win);
+
 
     // Finalize the MPI environment.
     MPI_Finalize();
@@ -154,11 +210,12 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-int gillespie_simulation(int *x0, int *x)
+int gillespie_simulation(int *x0, int *x, double* times)
 {
     // Initialize variables
-    double t = 0, a0, timestep, u1, u2;
-    int reaction_index;
+    double t = 0, a0, timestep, u1, u2, start;
+    int reaction_index, time_updates_counter = 0;
+
 
     // Copy initial state to x
     memcpy(x, x0, 7 * sizeof(int));
@@ -167,8 +224,24 @@ int gillespie_simulation(int *x0, int *x)
     double w[15];
     double cum_w[15];
 
+    // Start timer
+    start = MPI_Wtime();
+
     while (t < time_limit)
     {   
+        if (time_updates_counter == 0 && t > 25){
+            times[2] += MPI_Wtime() - start;
+            time_updates_counter++;
+        }
+        else if (time_updates_counter == 1 && t > 50){
+            times[1] += MPI_Wtime() - start;
+            time_updates_counter++;
+        }
+        else if (time_updates_counter == 2 && t > 25){
+            times[0] += MPI_Wtime() - start;
+            time_updates_counter++;
+        }
+
         // Calculate propensities
         prop(x, w);
 
@@ -199,7 +272,10 @@ int gillespie_simulation(int *x0, int *x)
 
         // Update time
         t += timestep;
-    }
+    }  
+
+    times[3] += MPI_Wtime() - start;
+
 
     return x[0];
 }
