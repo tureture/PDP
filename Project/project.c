@@ -65,6 +65,14 @@ int main(int argc, char *argv[])
     // MPI_Win_allocate((MPI_Aint)(4 * sizeof(double)), sizeof(double), MPI_INFO_NULL, MPI_COMM_WORLD, &buffer, &win);
     MPI_Win_create(shared_times, 4 * size * sizeof(double), sizeof(double), MPI_INFO_NULL, MPI_COMM_WORLD, &win);
 
+    // Set shared memory to 0
+    if (rank == 0)
+    {
+        for (int i = 0; i < 4 * size; i++)
+        {
+            shared_times[i] = 0;
+        }
+    }
 
     // initialize random seed
     srand(time(NULL) + rank);
@@ -81,9 +89,6 @@ int main(int argc, char *argv[])
         // Run Gillespie simulation
         local_result[i] = gillespie_simulation(x0, x, shared_times, win, rank); 
     }
-
-    // End MPI one-sided communication epoch
-    MPI_Win_fence(0, win);
 
     // find max and min elements locally
     int global_max, global_min;
@@ -132,6 +137,9 @@ int main(int argc, char *argv[])
     int* global_bin_counts = (int*)malloc(nr_bins * sizeof(int));
     MPI_Reduce(bin_counts, global_bin_counts, nr_bins, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 
+    // End MPI one-sided communication epoch
+    MPI_Win_fence(0, win);
+
     // Stop timer
     double time = MPI_Wtime() - start;
 
@@ -149,10 +157,10 @@ int main(int argc, char *argv[])
         printf("Max time: %fs \n", max_time);
     }
 
-    // print avg times
+    // print timesplits
     if (rank == 0)
     {   
-        printf("Average times: \n");
+        printf("Timesplits: \n");
         for (int i = 0; i<size; i++)
         {
             printf("P %d: \n", i);
@@ -328,6 +336,7 @@ void print_histogram(int* bins, int* bin_counts, int nr_bins, int min, int max)
     {
         printf("%d-%d: %d\n", bins[i - 1], bins[i], bin_counts[i]);
     }
+    printf("\n");
 }
 
 // Writes to file.
