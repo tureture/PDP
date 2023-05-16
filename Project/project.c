@@ -149,18 +149,6 @@ int main(int argc, char *argv[])
         printf("Max time: %fs \n", max_time);
     }
 
-
-
-    // Calculate average time per split
-    double avg_time[4];
-    if (rank == 0)
-    {
-            for (int i = 0; i < 4; i++)
-            {
-                avg_time[i] = shared_times[i] / size;
-            }
-    }
-
     // print avg times
     if (rank == 0)
     {   
@@ -175,7 +163,6 @@ int main(int argc, char *argv[])
         printf("\n");
     }
 
-    MPI_Barrier(MPI_COMM_WORLD);
 
     // Write to file
     if (rank == 0)
@@ -183,7 +170,6 @@ int main(int argc, char *argv[])
         write_file(output_file, bins, global_bin_counts, nr_bins, global_min, global_max, N, max_time);
     }
 
-    MPI_Barrier(MPI_COMM_WORLD);
 
     // Free memory
     free(local_result);
