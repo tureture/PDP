@@ -52,6 +52,9 @@ int main(int argc, char *argv[])
     int* local_result;
     int x0[] = {900, 900, 30, 330, 50, 270, 20};
     int* x;
+    double w[15];
+    double cum_w[15];
+    int time_updates[4] = {25, 50, 75, 100}; // added extra value to not have to check for end of array
 
     // Allocate memory
     local_result = (int*)malloc(n * sizeof(int));
@@ -87,7 +90,7 @@ int main(int argc, char *argv[])
     for (int i = 0; i < n; i++)
     {   
         // Run Gillespie simulation
-        local_result[i] = gillespie_simulation(x0, x, shared_times, win, rank); 
+        local_result[i] = gillespie_simulation(x0, x, shared_times, win, rank, w, cum_w, time_updates); 
     }
 
     // find max and min elements locally
@@ -161,6 +164,7 @@ int main(int argc, char *argv[])
     if (rank == 0)
     {   
         printf("Timesplits: \n");
+        printf("\n");
         for (int i = 0; i<size; i++)
         {
             printf("P %d: \n", i);
@@ -197,22 +201,17 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-int gillespie_simulation(int *x0, int *x, double* times, MPI_Win win, int rank)
+int gillespie_simulation(int *x0, int *x, double* times, MPI_Win win, int rank, double* w, double* cum_w, int* time_updates)
 {
     // Initialize variables
     double t = 0, a0, timestep, u1, u2;
     int reaction_index, time_updates_counter = 0;
     double start = MPI_Wtime();
-    int time_updates[4] = {25, 50, 75, 1000}; // added extra value to not have to check for end of array
     double elapsed_time;
 
 
     // Copy initial state to x
     memcpy(x, x0, 7 * sizeof(int));
-
-    // Allocate memory for propensity vector
-    double w[15];
-    double cum_w[15];
 
     // Start timer
     start = MPI_Wtime();
