@@ -1,0 +1,28 @@
+############################
+# Makefile for PDP Project
+############################
+
+CC = mpicc
+CCFLAGS = -g -O3 -Wall
+LIBS = -lm
+
+# List of all source files
+SRCS = project.c prop.c
+
+# Generate object file names from source file names
+OBJS = $(SRCS:.c=.o)
+
+# Default target
+all: project
+
+# Link object files to generate executable
+project: $(OBJS)
+	$(CC) $(CCFLAGS) $(OBJS) -o project $(LIBS)
+
+# Compile each source file into an object file
+%.o: %.c
+	$(CC) $(CCFLAGS) -c $< -o $@
+
+# Clean up object files and executable
+clean:
+	$(RM) $(OBJS) mc
