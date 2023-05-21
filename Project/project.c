@@ -16,7 +16,7 @@ Monte Carlo computations & Stochastic Simulation algorithm to simulate malaria e
 
 By Ture Hassler
 
-mpirun -np 2 ./project 10 out.txt
+mpirun -np 2 ./project 10 out.txt 0 0
 */
 
 // Global variables
@@ -24,7 +24,6 @@ const int length_of_x = 7;
 const int lengt_of_w = 15;
 const int time_limit = 100;
 const int nr_bins = 20;
-
 
 // Main function
 int main(int argc, char *argv[])
@@ -38,9 +37,9 @@ int main(int argc, char *argv[])
     // read input parameters
     if (rank == 0) 
     {
-        if (argc != 3)
+        if (argc != 5)
         {
-            printf("Usage: %s <total number of iterations> <output file>\n", argv[0]);
+            printf("Usage: %s <total number of iterations> <output file> <write to file 0/1> <print timesplits & histogram 0/1> \n", argv[0]);
             return -1;
         }
     }
@@ -49,6 +48,8 @@ int main(int argc, char *argv[])
     int N = atoi(argv[1]);
     int n = N/size;
     char *output_file = argv[2];
+    int write_to_file = atoi(argv[3]);
+    int print = atoi(argv[4]);
     int* local_result;
     int x0[] = {900, 900, 30, 330, 50, 270, 20};
     int* x;
@@ -60,15 +61,12 @@ int main(int argc, char *argv[])
     local_result = (int*)malloc(n * sizeof(int));
     x = (int*)malloc(7 * sizeof(int));
 
-    // Allocate shared memory for one-way communications
-    // double local_times[4];
+    // Allocate shared memory for one-way communications & create window
     double shared_times[4 * size];
     MPI_Win win;
-
-    // MPI_Win_allocate((MPI_Aint)(4 * sizeof(double)), sizeof(double), MPI_INFO_NULL, MPI_COMM_WORLD, &buffer, &win);
     MPI_Win_create(shared_times, 4 * size * sizeof(double), sizeof(double), MPI_INFO_NULL, MPI_COMM_WORLD, &win);
 
-    // Set shared memory to 0
+    // Initialize shared memory to 0
     if (rank == 0)
     {
         for (int i = 0; i < 4 * size; i++)
@@ -77,7 +75,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    // initialize random seed
+    // Initialize random seed
     srand(time(NULL) + rank);
 
     // Start timer
@@ -95,8 +93,13 @@ int main(int argc, char *argv[])
 
     // find max and min elements locally
     int global_max, global_min;
-    int max = local_result[0];
-    int min = local_result[0];
+    int max, min;
+    if (n > 0) // getting rid of warning...
+    {
+        max = local_result[0];
+        min = local_result[0];
+    }
+
     for (int i = 1; i < n; i++)
     {
         if (local_result[i] > max)
@@ -124,6 +127,11 @@ int main(int argc, char *argv[])
 
     // Count number of elements in each bin
     int* bin_counts = (int*)malloc(nr_bins * sizeof(int));
+    for (int i = 0; i < nr_bins; i++)
+    {
+        bin_counts[i] = 0;
+    }
+
     for (int i = 0; i < n; i++)
     {
         for (int j = 0; j < nr_bins; j++)
@@ -147,7 +155,7 @@ int main(int argc, char *argv[])
     double time = MPI_Wtime() - start;
 
     // Print results
-    if (rank == 0)
+    if (rank == 0 && print)
     {
         print_histogram(bins, global_bin_counts, nr_bins, global_min, global_max);
     }
@@ -161,7 +169,7 @@ int main(int argc, char *argv[])
     }
 
     // print timesplits
-    if (rank == 0)
+    if (rank == 0 && print)
     {   
         printf("Timesplits: \n");
         printf("\n");
@@ -177,7 +185,7 @@ int main(int argc, char *argv[])
 
 
     // Write to file
-    if (rank == 0)
+    if (rank == 0 && write_to_file)
     {
         write_file(output_file, bins, global_bin_counts, nr_bins, global_min, global_max, N, max_time);
     }
