@@ -39,7 +39,7 @@ int main(int argc, char *argv[])
     {
         if (argc != 5)
         {
-            printf("Usage: %s <total number of iterations> <output file> <write to file 0/1> <print timesplits 0/1> \n", argv[0]);
+            printf("Usage: %s <total number of iterations> <output file> <write to file 0/1> <print timesplits & histogram 0/1> \n", argv[0]);
             return -1;
         }
     }
@@ -150,7 +150,7 @@ int main(int argc, char *argv[])
     double time = MPI_Wtime() - start;
 
     // Print results
-    if (rank == 0)
+    if (rank == 0 && print)
     {
         print_histogram(bins, global_bin_counts, nr_bins, global_min, global_max);
     }
