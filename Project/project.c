@@ -22,7 +22,7 @@ mpirun -np 2 ./project 10 out.txt 0 0
 // Global variables
 const int length_of_x = 7;
 const int lengt_of_w = 15;
-const int time_limit = 10;
+const int time_limit = 100;
 const int nr_bins = 20;
 
 // Main function
