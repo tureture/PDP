@@ -63,8 +63,9 @@ int main(int argc, char *argv[])
 
     // Allocate shared memory for one-way communications & create window
     double shared_times[4 * size];
-    //MPI_Win win;
-    //MPI_Win_create(shared_times, 4 * size * sizeof(double), sizeof(double), MPI_INFO_NULL, MPI_COMM_WORLD, &win);
+    double* times = (double*)malloc(4 * sizeof(double));
+    MPI_Win win;
+    MPI_Win_create(shared_times, 4 * size * sizeof(double), sizeof(double), MPI_INFO_NULL, MPI_COMM_WORLD, &win);
 
     // Initialize shared memory to 0
     if (rank == 0)
@@ -75,6 +76,11 @@ int main(int argc, char *argv[])
         }
     }
 
+    for (int i = 0; i < 4; i++)
+    {
+        times[i] = 0;
+    }
+
     // Initialize random seed
     srand(time(NULL) + rank);
 
@@ -82,13 +88,13 @@ int main(int argc, char *argv[])
     double start = MPI_Wtime();
 
     // Start MPI one-sided communication epoch
-    //MPI_Win_fence(0, win);
+    MPI_Win_fence(0, win);
 
     // Run simulation n times per process
     for (int i = 0; i < n; i++)
     {   
         // Run Gillespie simulation
-        local_result[i] = gillespie_simulation(x0, x, shared_times, win, rank, w, cum_w, time_updates); 
+        local_result[i] = gillespie_simulation(x0, x, times, win, rank, w, cum_w, time_updates); 
     }
 
     // find max and min elements locally
@@ -148,6 +154,9 @@ int main(int argc, char *argv[])
     int* global_bin_counts = (int*)malloc(nr_bins * sizeof(int));
     MPI_Reduce(bin_counts, global_bin_counts, nr_bins, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 
+    // calc timesplits
+    MPI_Accumulate(times, 4, MPI_DOUBLE, 0, rank * 4, 4, MPI_DOUBLE , MPI_SUM , win);
+
     // End MPI one-sided communication epoch
     MPI_Win_fence(0, win);
 
@@ -168,7 +177,12 @@ int main(int argc, char *argv[])
         printf("Max time: %fs \n", max_time);
     }
 
-    /*
+
+
+
+    //MPI_Accumulate(&elapsed_time, 1, MPI_DOUBLE, 0, rank * 4 + time_updates_counter, 1, MPI_DOUBLE , MPI_SUM , win);
+
+    // print timesplits
     if (rank == 0 && print)
     {   
         printf("Timesplits: \n");
@@ -182,9 +196,6 @@ int main(int argc, char *argv[])
         }
         printf("\n");
     }
-    
-    */
-    // print timesplits
 
 
 
@@ -204,7 +215,7 @@ int main(int argc, char *argv[])
 
 
     // Free MPI window 
-    //MPI_Win_free(&win);
+    MPI_Win_free(&win);
 
 
     // Finalize the MPI environment.
@@ -230,15 +241,16 @@ int gillespie_simulation(int *x0, int *x, double* times, MPI_Win win, int rank, 
 
     while (t < time_limit)
     {   
-        /*
+        
         if (t > time_updates[time_updates_counter])
         {
             elapsed_time = MPI_Wtime() - start;
-            MPI_Accumulate(&elapsed_time, 1, MPI_DOUBLE, 0, rank * 4 + time_updates_counter, 1, MPI_DOUBLE , MPI_SUM , win);
+            times[time_updates_counter] += elapsed_time;
+            //MPI_Accumulate(&elapsed_time, 1, MPI_DOUBLE, 0, rank * 4 + time_updates_counter, 1, MPI_DOUBLE , MPI_SUM , win);
             time_updates_counter++;
         }
         
-        */
+        
 
 
 
@@ -274,7 +286,8 @@ int gillespie_simulation(int *x0, int *x, double* times, MPI_Win win, int rank, 
         t += timestep;
     }  
 
-    //elapsed_time = MPI_Wtime() - start;
+    elapsed_time = MPI_Wtime() - start;
+    times[time_updates_counter] += elapsed_time;
     //MPI_Accumulate(&elapsed_time, 1, MPI_DOUBLE, 0, rank * 4 + time_updates_counter, 1, MPI_DOUBLE , MPI_SUM , win);
 
 
