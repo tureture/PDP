@@ -127,6 +127,11 @@ int main(int argc, char *argv[])
 
     // Count number of elements in each bin
     int* bin_counts = (int*)malloc(nr_bins * sizeof(int));
+    for (int i = 0; i < nr_bins; i++)
+    {
+        bin_counts[i] = 0;
+    }
+
     for (int i = 0; i < n; i++)
     {
         for (int j = 0; j < nr_bins; j++)
