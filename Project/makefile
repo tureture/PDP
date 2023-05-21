@@ -3,7 +3,7 @@
 ############################
 
 CC = mpicc
-CCFLAGS = -g -O3 -Wall
+CCFLAGS = -g -O3 -Wall -Wextra
 LIBS = -lm
 
 # List of all source files
