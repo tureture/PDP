@@ -1,77 +1,63 @@
-/*
- * On src:   m(0:9,0:9) 
- *           send section m(2:6,4:9)
- *
- * On dest   m(0:11,0:7)
- *           recv section m(7:11,2:7)
- *
- * NOTE: this code emulates Fortran style indexing
- */
-#include  <stdio.h>
-#include  "mpi.h"
+#include <stdio.h>
+#include <mpi.h>
 
-#define IND(i,j)  j*mx+i
+int main(int argc, char** argv) {
+    MPI_Init(&argc, &argv);
 
-void main( int argc, char *argv[] )
-{
-  int *m;
-  int mx, my, nx, ny;
-  int ierr, rank, size;
-  int src = 1, dest = 0;
-  MPI_Datatype section;
-  MPI_Status status;
-  int i,j;
+    int rank, size, n, k;
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-  MPI_Init(&argc, &argv);
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    n = 10;  // size of the 2D array
+    k = n / size;  // number of rows per process
 
-  if (rank==src) {
-
-    mx = 10; my = 10;
-    m = (int *) malloc(mx*my*sizeof(int));
-
-    printf("Source array:\n");
-    for(j=0; j<my; j++) {
-      for(i=0; i<mx; i++){
-	m[IND(i,j)] = IND(i,j);
-	printf("  %2.2d", m[IND(i,j)]);
-      }
-      printf("\n");
-    }
-    printf("\n");
-
-    nx = 6-2+1; ny = 9-4+1;  /* m(2:6,4:9) */
-  }
-  else{
-
-     mx = 12; my = 8;
-     m = (int *) malloc(mx*my*sizeof(int));
-     for(j=0; j<mx*my; j++) m[j] = 0;
-
-     nx = 11-7+1; ny = 7-2+1;  /* m(7:11,2:7) */
-  }
-
-  MPI_Type_vector(ny, nx, mx, MPI_INT, &section);
-
-  MPI_Type_commit(&section);
-  
-  if (rank==src)
-    MPI_Send( m+IND(2,4), 1, section, dest, 7, MPI_COMM_WORLD);
-  else
-    {
-      MPI_Recv( m+IND(7,2) , 1, section, src, 7, MPI_COMM_WORLD, &status);
-
-      printf("Target array:\n");
-      for(j=0; j<my; j++) {
-	for(i=0; i<mx; i++) printf("  %2.2d", m[IND(i,j)]);
-	printf("\n");
-      }
-      printf("\n");
-      
+    // Allocate local 2D array
+    int local_array[k][n];
+    
+    // Initialize local 2D array
+    for (int i = 0; i < k; i++) {
+        for (int j = 0; j < n; j++) {
+            local_array[i][j] = rank * k + i * n + j;
+        }
     }
 
-  MPI_Finalize();
+    // Print local 2D array
+    printf("Local array for process %d:\n", rank);
+    for (int i = 0; i < k; i++) {
+        for (int j = 0; j < n; j++) {
+            printf("%d ", local_array[i][j]);
+        }
+        printf("\n");
+    }
 
+    // Define MPI derived datatype
+    int m = 2;  // number of consecutive rows to send
+    MPI_Datatype contiguous_type;
+    MPI_Type_contiguous(m * n, MPI_INT, &contiguous_type);
+    MPI_Type_commit(&contiguous_type);
+
+    // Send last two rows to right neighbor
+    int dest = (rank + 1) % size;
+    MPI_Send(&local_array[k-m][0], 1, contiguous_type, dest, 0, MPI_COMM_WORLD);
+
+    // Receive last two rows from left neighbor
+    int source = (rank + size - 1) % size;
+    MPI_Status status;
+    MPI_Recv(&local_array[0][0], 1, contiguous_type, source, 0, MPI_COMM_WORLD, &status);
+
+    // Print updated local 2D array
+    printf("Updated local array for process %d:\n", rank);
+    for (int i = 0; i < k; i++) {
+        for (int j = 0; j < n; j++) {
+            printf("%d ", local_array[i][j]);
+        }
+        printf("\n");
+    }
+
+    MPI_Type_free(&contiguous_type);
+    MPI_Finalize();
+
+    return 0;
 }
 
 
