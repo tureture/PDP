@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
     for (int i = 0; i < n; i++)
     {   
         // Run Gillespie simulation
-        local_result[i] = gillespie_simulation(x0, x, times, win, rank, w, cum_w, time_updates); 
+        local_result[i] = gillespie_simulation(x0, x, times, w, cum_w, time_updates); 
     }
 
     // find max and min elements locally
@@ -166,7 +166,7 @@ int main(int argc, char *argv[])
     // Print results
     if (rank == 0 && print)
     {
-        print_histogram(bins, global_bin_counts, nr_bins, global_min, global_max);
+        print_histogram(bins, global_bin_counts, nr_bins, global_min);
     }
 
     // Print max time 
@@ -176,11 +176,6 @@ int main(int argc, char *argv[])
     {
         printf("Max time: %fs \n", max_time);
     }
-
-
-
-
-    //MPI_Accumulate(&elapsed_time, 1, MPI_DOUBLE, 0, rank * 4 + time_updates_counter, 1, MPI_DOUBLE , MPI_SUM , win);
 
     // print timesplits
     if (rank == 0 && print)
@@ -224,7 +219,7 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-int gillespie_simulation(int *x0, int *x, double* times, MPI_Win win, int rank, double* w, double* cum_w, int* time_updates)
+int gillespie_simulation(int *x0, int *x, double* times, double* w, double* cum_w, int* time_updates)
 {
     // Initialize variables
     double t = 0, a0, timestep, u1, u2;
@@ -356,7 +351,7 @@ void update_state(int* x, int reaction_index)
     }
 }
 
-void print_histogram(int* bins, int* bin_counts, int nr_bins, int min, int max)
+void print_histogram(int* bins, int* bin_counts, int nr_bins, int min)
 {
     printf("Histogram:\n");
     printf("%d-%d: %d\n", min, bins[0], bin_counts[0]);
