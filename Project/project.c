@@ -155,7 +155,7 @@ int main(int argc, char *argv[])
     MPI_Reduce(bin_counts, global_bin_counts, nr_bins, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
 
     // calc timesplits
-    MPI_Accumulate(times, 4, MPI_DOUBLE, 0, rank * 4, 4, MPI_DOUBLE , MPI_SUM , win);
+    MPI_Put(times, 4, MPI_DOUBLE, 0, rank * 4, 4, MPI_DOUBLE, win);
 
     // End MPI one-sided communication epoch
     MPI_Win_fence(0, win);
@@ -241,14 +241,10 @@ int gillespie_simulation(int *x0, int *x, double* times, double* w, double* cum_
         {
             elapsed_time = MPI_Wtime() - start;
             times[time_updates_counter] += elapsed_time;
-            //MPI_Accumulate(&elapsed_time, 1, MPI_DOUBLE, 0, rank * 4 + time_updates_counter, 1, MPI_DOUBLE , MPI_SUM , win);
             time_updates_counter++;
         }
         
         
-
-
-
         // Calculate propensities
         prop(x, w);
 
@@ -283,8 +279,6 @@ int gillespie_simulation(int *x0, int *x, double* times, double* w, double* cum_
 
     elapsed_time = MPI_Wtime() - start;
     times[time_updates_counter] += elapsed_time;
-    //MPI_Accumulate(&elapsed_time, 1, MPI_DOUBLE, 0, rank * 4 + time_updates_counter, 1, MPI_DOUBLE , MPI_SUM , win);
-
 
     return x[0];
 }
