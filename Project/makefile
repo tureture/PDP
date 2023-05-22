@@ -13,10 +13,10 @@ SRCS = project.c prop.c
 OBJS = $(SRCS:.c=.o)
 
 # Default target
-all: project
+all: mc
 
 # Link object files to generate executable
-project: $(OBJS)
+mc: $(OBJS)
 	$(CC) $(CCFLAGS) $(OBJS) -o mc $(LIBS)
 
 # Compile each source file into an object file
