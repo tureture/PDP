@@ -17,7 +17,7 @@ all: project
 
 # Link object files to generate executable
 project: $(OBJS)
-	$(CC) $(CCFLAGS) $(OBJS) -o project $(LIBS)
+	$(CC) $(CCFLAGS) $(OBJS) -o mc $(LIBS)
 
 # Compile each source file into an object file
 %.o: %.c

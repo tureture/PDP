@@ -12,13 +12,13 @@ echo "Running weak scaling test"
 module load gcc openmpi
 export OMPI_MCA_btl_openib_allow_ib=1
 
-mpirun --bind-to none -n 1 ./project 100000 out.txt 0 0
-mpirun --bind-to none -n 2 ./project 200000 out.txt 0 0
-mpirun --bind-to none -n 4 ./project 400000 out.txt 0 0 
-mpirun --bind-to none -n 8 ./project 800000 out.txt 0 0
-mpirun --bind-to none -n 16 ./project 1600000 out.txt 0 0
-mpirun --bind-to none -n 32 ./project 3200000 out.txt 0 0
-mpirun --bind-to none -n 64 ./project 6400000 out.txt 0 0
+mpirun --bind-to none -n 1 ./mc 100000 out.txt 0 0
+mpirun --bind-to none -n 2 ./mc 200000 out.txt 0 0
+mpirun --bind-to none -n 4 ./mc 400000 out.txt 0 0 
+mpirun --bind-to none -n 8 ./mc 800000 out.txt 0 0
+mpirun --bind-to none -n 16 ./mc 1600000 out.txt 0 0
+mpirun --bind-to none -n 32 ./mc 3200000 out.txt 0 0
+mpirun --bind-to none -n 64 ./mc 6400000 out.txt 0 0
 
 
 
