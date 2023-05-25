@@ -16,7 +16,8 @@ Monte Carlo computations & Stochastic Simulation algorithm to simulate malaria e
 
 By Ture Hassler
 
-mpirun -np 2 ./project 10 out.txt 0 0
+Example run:
+mpirun -np 2 ./project 1000 out.txt 1 1
 */
 
 // Global variables
@@ -55,7 +56,7 @@ int main(int argc, char *argv[])
     int* x;
     double w[15];
     double cum_w[15];
-    int time_updates[4] = {25, 50, 75, 100}; // added extra value to not have to check for end of array
+    int time_updates[4] = {25, 50, 75, 100};
 
     // Allocate memory
     local_result = (int*)malloc(n * sizeof(int));
@@ -207,6 +208,7 @@ int main(int argc, char *argv[])
     free(bins);
     free(bin_counts);
     free(global_bin_counts);
+    free(times);
 
 
     // Free MPI window 
@@ -358,6 +360,7 @@ void print_histogram(int* bins, int* bin_counts, int nr_bins, int min)
 
 // Writes to file.
 // Uses order N, time, nr_bins, min, max and then the bins and bin_counts
+// Mostly used for my plotting files
 void write_file(char* filename, int* bins, int* bin_counts, int nr_bins, int min, int max, int N, double time)
 {
     FILE *fp;
